@@ -10,9 +10,9 @@ export const metadata: Metadata = {
   title: 'AI Creator Hub - Premium Content Creation Tools',
   description: 'AI-powered platform for Thumbnail Generation, Lyrics to Song, and Viral YouTube Content Tools',
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: '/tick.png',
+    shortcut: '/tick.png',
+    apple: '/tick.png',
   },
 };
 

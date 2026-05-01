@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "autoprefixer": "^10.4.0",
+    "babel-plugin-react-compiler": "^1.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.462.0",

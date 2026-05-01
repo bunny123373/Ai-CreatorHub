@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { generateViralTitles } from '@/lib/prompts';
 import { copyToClipboard } from '@/lib/utils';
+import { saveToHistory } from '@/lib/history';
 
 export default function ViralTitles() {
   const [topic, setTopic] = useState('');
@@ -15,11 +16,25 @@ export default function ViralTitles() {
   const [titles, setTitles] = useState<string[]>([]);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!topic) return;
-    const generated = generateViralTitles(topic, language);
-    setTitles(generated);
-    saveToHistory(topic, generated);
+    try {
+      const response = await fetch('/api/generate-titles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, language }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setTitles(data.titles);
+      saveToHistory('title', topic, data.titles.join('\n'), { language });
+    } catch (error) {
+      console.error('Generation failed:', error);
+      // Fallback to template
+      const generated = generateViralTitles(topic, language);
+      setTitles(generated);
+      saveToHistory('title', topic, generated.join('\n'), { language });
+    }
   };
 
   const handleCopy = async (title: string, index: number) => {
@@ -32,19 +47,6 @@ export default function ViralTitles() {
     await copyToClipboard(titles.join('\n'));
     setCopiedIndex(-1);
     setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
-  const saveToHistory = (input: string, output: string[]) => {
-    const history = JSON.parse(localStorage.getItem('history') || '[]');
-    history.unshift({
-      id: Date.now().toString(),
-      type: 'title',
-      input,
-      output: output.join('\n'),
-      timestamp: Date.now(),
-      metadata: { language }
-    });
-    localStorage.setItem('history', JSON.stringify(history.slice(0, 50)));
   };
 
   return (

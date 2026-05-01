@@ -6,6 +6,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { copyToClipboard } from '@/lib/utils';
 import { formatDate } from '@/lib/utils';
+import { getHistory, deleteHistoryItem, clearHistory } from '@/lib/history';
 import type { HistoryItem } from '@/types';
 
 const typeColors: Record<string, string> = {
@@ -29,8 +30,7 @@ export default function History() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('history') || '[]');
-    setHistory(saved);
+    setHistory(getHistory());
   }, []);
 
   const handleCopy = async (item: HistoryItem) => {
@@ -40,14 +40,13 @@ export default function History() {
   };
 
   const handleClear = () => {
-    localStorage.setItem('history', '[]');
+    clearHistory();
     setHistory([]);
   };
 
   const handleDelete = (id: string) => {
-    const updated = history.filter((item) => item.id !== id);
-    localStorage.setItem('history', JSON.stringify(updated));
-    setHistory(updated);
+    deleteHistoryItem(id);
+    setHistory(getHistory());
   };
 
   return (

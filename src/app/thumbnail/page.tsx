@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { generateThumbnailPrompt } from '@/lib/prompts';
 import { copyToClipboard } from '@/lib/utils';
+import { saveToHistory } from '@/lib/history';
 import type { ThumbnailStyle } from '@/types';
 
 const styles: { value: ThumbnailStyle; label: string }[] = [
@@ -25,11 +26,25 @@ export default function ThumbnailGenerator() {
   const [prompt, setPrompt] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!title) return;
-    const generated = generateThumbnailPrompt(title, style, language);
-    setPrompt(generated);
-    saveToHistory(title, generated);
+    try {
+      const response = await fetch('/api/generate-thumbnail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, style, language }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setPrompt(data.prompt);
+      saveToHistory('thumbnail', title, data.prompt, { style, language });
+    } catch (error) {
+      console.error('Generation failed:', error);
+      // Fallback to template
+      const generated = generateThumbnailPrompt(title, style, language);
+      setPrompt(generated);
+      saveToHistory('thumbnail', title, generated, { style, language });
+    }
   };
 
   const handleCopy = async () => {
@@ -42,19 +57,6 @@ export default function ThumbnailGenerator() {
   const handleClear = () => {
     setTitle('');
     setPrompt('');
-  };
-
-  const saveToHistory = (input: string, output: string) => {
-    const history = JSON.parse(localStorage.getItem('history') || '[]');
-    history.unshift({
-      id: Date.now().toString(),
-      type: 'thumbnail',
-      input,
-      output,
-      timestamp: Date.now(),
-      metadata: { style, language }
-    });
-    localStorage.setItem('history', JSON.stringify(history.slice(0, 50)));
   };
 
   return (

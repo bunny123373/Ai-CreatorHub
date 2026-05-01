@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { generateSongPrompt } from '@/lib/prompts';
 import { copyToClipboard } from '@/lib/utils';
+import { saveToHistory } from '@/lib/history';
 import type { SongStyle, MoodType } from '@/types';
 
 const styles: { value: SongStyle; label: string }[] = [
@@ -34,11 +35,25 @@ export default function LyricsStudio() {
   const [prompt, setPrompt] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!lyrics) return;
-    const generated = generateSongPrompt(lyrics, style, mood, language);
-    setPrompt(generated);
-    saveToHistory(lyrics, generated);
+    try {
+      const response = await fetch('/api/generate-lyrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lyrics, style, mood, language }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setPrompt(data.prompt);
+      saveToHistory('lyrics', lyrics, data.prompt, { style, mood, language });
+    } catch (error) {
+      console.error('Generation failed:', error);
+      // Fallback to template
+      const generated = generateSongPrompt(lyrics, style, mood, language);
+      setPrompt(generated);
+      saveToHistory('lyrics', lyrics, generated, { style, mood, language });
+    }
   };
 
   const handleCopy = async () => {
@@ -51,19 +66,6 @@ export default function LyricsStudio() {
   const handleClear = () => {
     setLyrics('');
     setPrompt('');
-  };
-
-  const saveToHistory = (input: string, output: string) => {
-    const history = JSON.parse(localStorage.getItem('history') || '[]');
-    history.unshift({
-      id: Date.now().toString(),
-      type: 'lyrics',
-      input,
-      output,
-      timestamp: Date.now(),
-      metadata: { style, mood, language }
-    });
-    localStorage.setItem('history', JSON.stringify(history.slice(0, 50)));
   };
 
   return (

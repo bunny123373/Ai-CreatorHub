@@ -7,17 +7,32 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { generateDescription } from '@/lib/prompts';
 import { copyToClipboard } from '@/lib/utils';
+import { saveToHistory } from '@/lib/history';
 
 export default function DescriptionGenerator() {
   const [topic, setTopic] = useState('');
   const [description, setDescription] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!topic) return;
-    const generated = generateDescription(topic);
-    setDescription(generated);
-    saveToHistory(topic, generated);
+    try {
+      const response = await fetch('/api/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setDescription(data.description);
+      saveToHistory('description', topic, data.description);
+    } catch (error) {
+      console.error('Generation failed:', error);
+      // Fallback to template
+      const generated = generateDescription(topic);
+      setDescription(generated);
+      saveToHistory('description', topic, generated);
+    }
   };
 
   const handleCopy = async () => {
@@ -25,18 +40,6 @@ export default function DescriptionGenerator() {
     await copyToClipboard(description);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const saveToHistory = (input: string, output: string) => {
-    const history = JSON.parse(localStorage.getItem('history') || '[]');
-    history.unshift({
-      id: Date.now().toString(),
-      type: 'description',
-      input,
-      output,
-      timestamp: Date.now(),
-    });
-    localStorage.setItem('history', JSON.stringify(history.slice(0, 50)));
   };
 
   return (
